@@ -274,23 +274,49 @@
             msg.textContent = "Đang kết nối Database...";
 
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
                 const res = await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "add", code: code }),
-                    headers: { "Content-Type": "application/json" }
+                    headers: { "Content-Type": "text/plain" },
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
-                msg.style.color = "var(--win-green)";
-                msg.textContent = `✓ Đã cấp mã: [${code}] thành công!`;
-                codeInput.value = "";
-                btn.disabled = false;
-                btn.textContent = "ĐẨY MÃ LÊN MÁY CHỦ";
-                fetchActiveCodes();
+                let resData = {};
+                try { resData = await res.json(); } catch(e) {}
+
+                if (res.ok || resData.success || res.status === 200) {
+                    msg.style.color = "var(--win-green)";
+                    msg.textContent = `✓ Đã cấp mã: [${code}] thành công!`;
+                    codeInput.value = "";
+                } else {
+                    msg.style.color = "var(--alert-red)";
+                    msg.textContent = `✗ Lỗi: ${resData.message || "Không thể thêm mã"}`;
+                }
             } catch (err) {
-                msg.style.color = "var(--alert-red)";
-                msg.textContent = "✗ Lỗi kết nối đến máy chủ!";
+                console.error(err);
+                // Nếu chạy qua Google Apps Script hoặc no-cors fallback
+                try {
+                    await fetch(API_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        body: JSON.stringify({ action: "add", code: code }),
+                        headers: { "Content-Type": "text/plain" }
+                    });
+                    msg.style.color = "var(--win-green)";
+                    msg.textContent = `✓ Đã gửi lệnh cấp mã: [${code}]!`;
+                    codeInput.value = "";
+                } catch(e2) {
+                    msg.style.color = "var(--alert-red)";
+                    msg.textContent = "✗ Lỗi kết nối đến máy chủ! Vui lòng kiểm tra lại.";
+                }
+            } finally {
                 btn.disabled = false;
                 btn.textContent = "ĐẨY MÃ LÊN MÁY CHỦ";
+                setTimeout(fetchActiveCodes, 1000);
             }
         }
 
@@ -300,11 +326,19 @@
                 await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "delete", code: code }),
-                    headers: { "Content-Type": "application/json" }
+                    headers: { "Content-Type": "text/plain" }
                 });
-                fetchActiveCodes();
             } catch (e) {
-                alert("Lỗi khi xóa mã!");
+                try {
+                    await fetch(API_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        body: JSON.stringify({ action: "delete", code: code }),
+                        headers: { "Content-Type": "text/plain" }
+                    });
+                } catch(err) {}
+            } finally {
+                setTimeout(fetchActiveCodes, 1000);
             }
         }
 

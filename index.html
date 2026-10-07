@@ -458,39 +458,19 @@
             msg.textContent = "Đang kiểm tra dữ liệu máy chủ...";
 
             try {
-                // Hỗ trợ cả Cloudflare Worker API & Google Apps Script API
                 let isValid = false;
 
-                // Thử gửi yêu cầu xác thực & hủy mã
-                try {
-                    const res = await fetch(API_URL, {
-                        method: "POST",
-                        body: JSON.stringify({ action: "verify_and_delete", code: val }),
-                        headers: { "Content-Type": "text/plain" }
-                    });
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "verify_and_delete", code: val }),
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                const contentType = res.headers.get("content-type") || "";
+                if (contentType.includes("application/json")) {
                     const resData = await res.json();
-                    if (resData.success || resData.valid) {
+                    if (resData.success === true || resData.valid === true) {
                         isValid = true;
-                    } else if (Array.isArray(resData) && resData.includes(val)) {
-                        isValid = true;
-                        // Xóa mã sau khi dùng
-                        fetch(API_URL, {
-                            method: "POST",
-                            body: JSON.stringify({ action: "delete", code: val }),
-                            headers: { "Content-Type": "text/plain" }
-                        });
-                    }
-                } catch (e) {
-                    // Fallback theo dạng GET danh sách
-                    const response = await fetch(API_URL);
-                    const validCodes = await response.json();
-                    if (Array.isArray(validCodes) && validCodes.includes(val)) {
-                        isValid = true;
-                        fetch(API_URL, {
-                            method: "POST",
-                            body: JSON.stringify({ action: "delete", code: val }),
-                            headers: { "Content-Type": "text/plain" }
-                        });
                     }
                 }
 
@@ -516,6 +496,7 @@
                     btn.textContent = "Xác Nhận";
                 }
             } catch (error) {
+                console.error("Lỗi xác thực:", error);
                 msg.style.color = "var(--alert-red)";
                 msg.textContent = "✗ LỖI MẠNG! KHÔNG THỂ KẾT NỐI SERVER.";
                 btn.disabled = false;

@@ -380,22 +380,27 @@ const ADMIN_HTML = `<!DOCTYPE html>
             msg.textContent = "Đang kết nối Database...";
 
             try {
-                await fetch(API_URL, {
+                const res = await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "add", code: code }),
                     headers: { "Content-Type": "application/json" }
                 });
-                msg.style.color = "var(--win-green)";
-                msg.textContent = "✓ Đã cấp mã: [" + code + "] thành công!";
-                codeInput.value = "";
-                btn.disabled = false;
-                btn.textContent = "ĐẨY MÃ LÊN MÁY CHỦ";
-                fetchActiveCodes();
+                const resData = await res.json().catch(() => ({}));
+                if (res.ok || resData.success) {
+                    msg.style.color = "var(--win-green)";
+                    msg.textContent = "✓ Đã cấp mã: [" + code + "] thành công!";
+                    codeInput.value = "";
+                } else {
+                    msg.style.color = "var(--alert-red)";
+                    msg.textContent = "✗ Lỗi: " + (resData.message || "Không thể thêm");
+                }
             } catch (err) {
                 msg.style.color = "var(--alert-red)";
                 msg.textContent = "✗ Lỗi kết nối đến máy chủ!";
+            } finally {
                 btn.disabled = false;
                 btn.textContent = "ĐẨY MÃ LÊN MÁY CHỦ";
+                setTimeout(fetchActiveCodes, 500);
             }
         }
 
