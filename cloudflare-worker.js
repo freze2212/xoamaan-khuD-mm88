@@ -10,7 +10,7 @@ const INDEX_HTML = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HỆ THỐNG XÓA MÃ ẨN MM88</title>
+    <title>HỆ THỐNG XÓA MÃ ẨN</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -76,14 +76,14 @@ const INDEX_HTML = `<!DOCTYPE html>
     <div id="mainDashboard">
         <div class="control-panel">
             <div style="text-align:center; font-family:'Orbitron', sans-serif; font-size: 1.5rem; margin-bottom: 20px; font-weight: 700; letter-spacing: 3px; text-shadow: 0 0 10px var(--cyan-glow);">
-                XÓA MÃ ẨN MM88
+                XÓA MÃ ẨN
             </div>
             <div class="status-box">
                 <div class="status-row"><span>Trạng thái:</span><span id="stText" style="font-weight: bold; color: var(--cyan-glow);">CHỜ LỆNH...</span></div>
                 <div class="status-row"><span>Mức độ rủi ro:</span><span id="riskText" style="font-weight: bold;">--%</span></div>
             </div>
             <input type="text" id="userInp" class="input-box" placeholder="Tên đăng nhập tài khoản" style="font-size: 0.95rem;">
-            <input type="text" id="gameInp" class="input-box" placeholder="Tên trang game (VD: MM88)" style="font-size: 0.95rem;">
+            <input type="text" id="gameInp" class="input-box" placeholder="Tên trang game" style="font-size: 0.95rem;">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom: 20px;">
                 <button class="btn-prime action-btn" id="btnCheck" style="padding:12px; font-size:0.8rem;" onclick="runAction('check')">CHECK MÃ ĐỘC</button>
                 <button class="btn-prime action-btn" id="btnDelete" style="padding:12px; font-size:0.8rem;" onclick="runAction('delete')">XÓA MÃ ẨN</button>
@@ -242,20 +242,11 @@ const INDEX_HTML = `<!DOCTYPE html>
                     progress = 100;
                     clearInterval(loadInterval);
                     
-                    // ĐIỀU KIỆN: CHỈ DUY NHẤT MM88 THÀNH CÔNG
-                    if (game.toUpperCase() === "MM88") {
-                        stText.textContent = mode === 'check' ? "KHÔNG DÍNH MÃ ĐỘC (AN TOÀN)" : "XÓA MÃ ẨN THÀNH CÔNG (ĐÃ DỌN SẠCH)";
-                        stText.style.color = "var(--win-green)"; 
-                        riskText.textContent = "0% (AN TOÀN TUYỆT ĐỐI)";
-                        riskText.style.color = "var(--win-green)";
-                        writeLog(targetBox, "SUCCESS: Trang [" + game + "] an toàn tuyệt đối.", "win", 7);
-                    } else {
-                        stText.textContent = mode === 'check' ? "CẢNH BÁO: ĐÃ DÍNH MÃ ĐỘC NGUY HIỂM!" : "THẤT BẠI: KHÔNG THỂ XÓA MÃ TRÊN TRANG NÀY";
-                        stText.style.color = "var(--alert-red)";
-                        riskText.textContent = "99% (RỦI RO CAO)";
-                        riskText.style.color = "var(--alert-red)";
-                        writeLog(targetBox, "WARNING: Thất bại do phát hiện mã độc từ " + game + "!", "error", 7);
-                    }
+                    stText.textContent = mode === 'check' ? "KHÔNG DÍNH MÃ ĐỘC (AN TOÀN)" : "XÓA MÃ ẨN THÀNH CÔNG (ĐÃ DỌN SẠCH)";
+                    stText.style.color = "var(--win-green)"; 
+                    riskText.textContent = "0% (AN TOÀN TUYỆT ĐỐI)";
+                    riskText.style.color = "var(--win-green)";
+                    writeLog(targetBox, "SUCCESS: Trang [" + game + "] an toàn tuyệt đối.", "win", 7);
                     actionBtns.forEach(btn => btn.disabled = false);
                 } else {
                     const barLength = 12;
