@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADMIN CONTROLLER - HỆ THỐNG CẤP MÃ VIP MM88</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan-glow: #00f2ff;
+            --alert-red: #ff003c;
+            --win-green: #00ff66;
+            --panel-bg: rgba(0, 15, 20, 0.95);
+            --border-style: 1px solid rgba(0, 242, 255, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        body {
+            background-color: #03070a;
+            color: var(--cyan-glow);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .admin-container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--panel-bg);
+            padding: 35px 30px;
+            border: var(--border-style);
+            border-radius: 12px;
+            box-shadow: 0 0 35px rgba(0, 242, 255, 0.25);
+            text-align: center;
+            position: relative;
+        }
+
+        .admin-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-shadow: 0 0 15px var(--cyan-glow);
+            margin-bottom: 8px;
+        }
+
+        .admin-subtitle {
+            font-size: 0.8rem;
+            color: #8fa0b5;
+            letter-spacing: 2px;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(0, 242, 255, 0.35);
+            color: #fff;
+            border-radius: 6px;
+            outline: none;
+            font-size: 1.1rem;
+            text-align: center;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--cyan-glow);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+        }
+
+        .btn-gen {
+            padding: 0 18px;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid var(--cyan-glow);
+            color: var(--cyan-glow);
+            font-weight: bold;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn-gen:hover {
+            background: var(--cyan-glow);
+            color: #000;
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        button.btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 242, 255, 0.15);
+            border: 1px solid var(--cyan-glow);
+            color: var(--cyan-glow);
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 6px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        button.btn-submit:hover:not(:disabled) {
+            background: var(--cyan-glow);
+            color: #000;
+            box-shadow: 0 0 25px var(--cyan-glow);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #222 !important;
+            border-color: #444 !important;
+            color: #666 !important;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #statusMsg {
+            margin-top: 18px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            min-height: 24px;
+            letter-spacing: 1px;
+        }
+
+        /* Danh sách mã đang có */
+        .codes-list-container {
+            margin-top: 25px;
+            border-top: 1px solid rgba(0, 242, 255, 0.2);
+            padding-top: 20px;
+            text-align: left;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            color: #8fa0b5;
+        }
+
+        .code-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-height: 160px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .code-chip {
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-chip span.del-btn {
+            color: var(--alert-red);
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .code-chip span.del-btn:hover {
+            color: #fff;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 242, 255, 0.3); border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-title">ADMIN CONTROLLER</div>
+        <p class="admin-subtitle">HỆ THỐNG CẤP MÃ VIP DÙNG 1 LẦN</p>
+        
+        <div class="input-group">
+            <input type="text" id="newCode" placeholder="NHẬP MÃ CẤP..." autocomplete="off">
+            <button class="btn-gen" onclick="generateRandomCode()">TẠO NHANH</button>
+        </div>
+
+        <button id="addBtn" class="btn-submit" onclick="addCode()">ĐẨY MÃ LÊN MÁY CHỦ</button>
+        <p id="statusMsg"></p>
+
+        <div class="codes-list-container">
+            <div class="list-header">
+                <span>DANH SÁCH MÃ CHỜ SỬ DỤNG</span>
+                <button onclick="fetchActiveCodes()" style="background:none; border:none; color:var(--cyan-glow); cursor:pointer; font-size:0.75rem;">[ Làm mới ]</button>
+            </div>
+            <div class="code-chips" id="activeCodesList">
+                <span style="font-size: 0.75rem; color: #666;">Đang tải danh sách mã...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CẤU HÌNH API BACKEND (CLOUDFLARE WORKER HOẶC APPS SCRIPT)
+        // ==========================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbx9E4vSZUqS2aT05gr7L16Mh3XOcnZH25ElXNHCZXE09zwVK6O1t6jtIbBJLEfZf7uc5g/exec";
+
+        // Tự sinh mã ngẫu nhiên 6 ký tự MM88-XXXX
+        function generateRandomCode() {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let rand = "";
+            for (let i = 0; i < 4; i++) {
+                rand += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('newCode').value = "MM" + rand;
+        }
+
+        async function addCode() {
+            const codeInput = document.getElementById('newCode');
+            const code = codeInput.value.trim().toUpperCase();
+            const msg = document.getElementById('statusMsg');
+            const btn = document.getElementById('addBtn');
+
+            if (!code) { 
+                msg.style.color = "var(--alert-red)"; 
+                msg.textContent = "✗ Vui lòng nhập mã!"; 
+                return; 
+            }
+
+            btn.disabled = true;
+            btn.textContent = "ĐANG TẢI LÊN...";
+            msg.style.color = "var(--cyan-glow)";
+            msg.textContent = "Đang kết nối Database...";
+
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "add", code: code }),
+                    headers: { "Content-Type": "text/plain" }
+                });
+
+                msg.style.color = "var(--win-green)";
+                msg.textContent = `✓ Đã cấp mã: [${code}] thành công!`;
+                codeInput.value = "";
+                btn.disabled = false;
+                btn.textContent = "ĐẨY MÃ LÊN MÁY CHỦ";
+                fetchActiveCodes();
+            } catch (err) {
+                msg.style.color = "var(--alert-red)";
+                msg.textContent = "✗ Lỗi kết nối đến máy chủ!";
+                btn.disabled = false;
+                btn.textContent = "ĐẨY MÃ LÊN MÁY CHỦ";
+            }
+        }
+
+        async function deleteCodeDirect(code) {
+            if (!confirm(`Bạn có chắc muốn xóa mã [${code}] không?`)) return;
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "delete", code: code }),
+                    headers: { "Content-Type": "text/plain" }
+                });
+                fetchActiveCodes();
+            } catch (e) {
+                alert("Lỗi khi xóa mã!");
+            }
+        }
+
+        async function fetchActiveCodes() {
+            const listContainer = document.getElementById('activeCodesList');
+            try {
+                const res = await fetch(API_URL);
+                const codes = await res.json();
+
+                if (Array.isArray(codes) && codes.length > 0) {
+                    listContainer.innerHTML = codes.map(c => `
+                        <div class="code-chip">
+                            <span>${c}</span>
+                            <span class="del-btn" title="Xóa mã" onclick="deleteCodeDirect('${c}')">✕</span>
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = `<span style="font-size: 0.75rem; color: #777;">(Chưa có mã nào trong kho)</span>`;
+                }
+            } catch (e) {
+                listContainer.innerHTML = `<span style="font-size: 0.75rem; color: var(--alert-red);">(Không thể tải danh sách)</span>`;
+            }
+        }
+
+        // Tải danh sách mã khi vừa mở trang
+        fetchActiveCodes();
+    </script>
+</body>
+</html>
