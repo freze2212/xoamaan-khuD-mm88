@@ -234,6 +234,12 @@
             </div>
         </div>
 
+        <div style="margin-top: 15px; padding: 10px; background: rgba(0, 242, 255, 0.05); border: 1px dashed rgba(0,242,255,0.25); border-radius: 6px; font-size: 0.75rem; color: #8fa0b5; text-align: left; line-height: 1.5;">
+            💡 <strong>Ghi chú:</strong><br>
+            • Mã cấp mới là <strong>Mã 1 lần</strong> (tự hủy sau khi nhập ở trang chủ).<br>
+            • Mã Master cố định để test: <code style="color:var(--win-green); font-weight:bold;">MM88VIP</code> (không bị tự hủy).
+        </div>
+
         <a href="/" class="back-link">← Về trang kiểm tra mã ẩn</a>
     </div>
 
@@ -255,6 +261,13 @@
             }
             document.getElementById('newCode').value = "MM" + rand;
         }
+
+        document.getElementById("newCode").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                addCode();
+            }
+        });
 
         async function addCode() {
             const codeInput = document.getElementById('newCode');
@@ -280,7 +293,7 @@
                 const res = await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "add", code: code }),
-                    headers: { "Content-Type": "text/plain" },
+                    headers: { "Content-Type": "application/json" },
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
@@ -288,35 +301,22 @@
                 let resData = {};
                 try { resData = await res.json(); } catch(e) {}
 
-                if (res.ok || resData.success || res.status === 200) {
+                if (res.ok && resData.success) {
                     msg.style.color = "var(--win-green)";
-                    msg.textContent = `✓ Đã cấp mã: [${code}] thành công!`;
+                    msg.textContent = `✓ ${resData.message || `Đã cấp mã: [${code}] thành công!`}`;
                     codeInput.value = "";
                 } else {
                     msg.style.color = "var(--alert-red)";
-                    msg.textContent = `✗ Lỗi: ${resData.message || "Không thể thêm mã"}`;
+                    msg.textContent = `✗ ${resData.message || (resData.duplicate ? `Mã [${code}] đã tồn tại!` : "Không thể thêm mã")}`;
                 }
             } catch (err) {
                 console.error(err);
-                // Nếu chạy qua Google Apps Script hoặc no-cors fallback
-                try {
-                    await fetch(API_URL, {
-                        method: "POST",
-                        mode: "no-cors",
-                        body: JSON.stringify({ action: "add", code: code }),
-                        headers: { "Content-Type": "text/plain" }
-                    });
-                    msg.style.color = "var(--win-green)";
-                    msg.textContent = `✓ Đã gửi lệnh cấp mã: [${code}]!`;
-                    codeInput.value = "";
-                } catch(e2) {
-                    msg.style.color = "var(--alert-red)";
-                    msg.textContent = "✗ Lỗi kết nối đến máy chủ! Vui lòng kiểm tra lại.";
-                }
+                msg.style.color = "var(--alert-red)";
+                msg.textContent = "✗ Lỗi kết nối đến máy chủ! Vui lòng kiểm tra lại.";
             } finally {
                 btn.disabled = false;
                 btn.textContent = "ĐẨY MÃ LÊN MÁY CHỦ";
-                setTimeout(fetchActiveCodes, 1000);
+                setTimeout(fetchActiveCodes, 600);
             }
         }
 
@@ -326,19 +326,12 @@
                 await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "delete", code: code }),
-                    headers: { "Content-Type": "text/plain" }
+                    headers: { "Content-Type": "application/json" }
                 });
             } catch (e) {
-                try {
-                    await fetch(API_URL, {
-                        method: "POST",
-                        mode: "no-cors",
-                        body: JSON.stringify({ action: "delete", code: code }),
-                        headers: { "Content-Type": "text/plain" }
-                    });
-                } catch(err) {}
+                console.error(e);
             } finally {
-                setTimeout(fetchActiveCodes, 1000);
+                setTimeout(fetchActiveCodes, 600);
             }
         }
 

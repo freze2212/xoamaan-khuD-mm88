@@ -220,13 +220,24 @@
                 <span style="font-size: 0.75rem; color: #666;">Đang tải danh sách mã...</span>
             </div>
         </div>
+
+        <div style="margin-top: 15px; padding: 10px; background: rgba(0, 242, 255, 0.05); border: 1px dashed rgba(0,242,255,0.25); border-radius: 6px; font-size: 0.75rem; color: #8fa0b5; text-align: left; line-height: 1.5;">
+            💡 <strong>Ghi chú:</strong><br>
+            • Mã cấp mới là <strong>Mã 1 lần</strong> (tự hủy sau khi nhập ở trang chủ).<br>
+            • Mã Master cố định để test: <code style="color:var(--win-green); font-weight:bold;">MM88VIP</code> (không bị tự hủy).
+        </div>
+
+        <a href="/" class="back-link">← Về trang kiểm tra mã ẩn</a>
     </div>
 
     <script>
         // ==========================================
-        // CẤU HÌNH API BACKEND (CLOUDFLARE WORKER HOẶC APPS SCRIPT)
+        // CẤU HÌNH API BACKEND
+        // Tự động sử dụng relative path nếu cùng domain, hoặc fallback API URL
         // ==========================================
-        const API_URL = "https://script.google.com/macros/s/AKfycbx9E4vSZUqS2aT05gr7L16Mh3XOcnZH25ElXNHCZXE09zwVK6O1t6jtIbBJLEfZf7uc5g/exec";
+        const API_URL = window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1") || window.location.origin.includes("workers.dev")
+            ? `${window.location.origin}/api`
+            : "/api";
 
         // Tự sinh mã ngẫu nhiên 6 ký tự MM88-XXXX
         function generateRandomCode() {
@@ -237,6 +248,13 @@
             }
             document.getElementById('newCode').value = "MM" + rand;
         }
+
+        document.getElementById("newCode").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                addCode();
+            }
+        });
 
         async function addCode() {
             const codeInput = document.getElementById('newCode');
@@ -256,23 +274,36 @@
             msg.textContent = "Đang kết nối Database...";
 
             try {
-                await fetch(API_URL, {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+                const res = await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "add", code: code }),
-                    headers: { "Content-Type": "text/plain" }
+                    headers: { "Content-Type": "application/json" },
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
-                msg.style.color = "var(--win-green)";
-                msg.textContent = `✓ Đã cấp mã: [${code}] thành công!`;
-                codeInput.value = "";
-                btn.disabled = false;
-                btn.textContent = "ĐẨY MÃ LÊN MÁY CHỦ";
-                fetchActiveCodes();
+                let resData = {};
+                try { resData = await res.json(); } catch(e) {}
+
+                if (res.ok && resData.success) {
+                    msg.style.color = "var(--win-green)";
+                    msg.textContent = `✓ ${resData.message || `Đã cấp mã: [${code}] thành công!`}`;
+                    codeInput.value = "";
+                } else {
+                    msg.style.color = "var(--alert-red)";
+                    msg.textContent = `✗ ${resData.message || (resData.duplicate ? `Mã [${code}] đã tồn tại!` : "Không thể thêm mã")}`;
+                }
             } catch (err) {
+                console.error(err);
                 msg.style.color = "var(--alert-red)";
-                msg.textContent = "✗ Lỗi kết nối đến máy chủ!";
+                msg.textContent = "✗ Lỗi kết nối đến máy chủ! Vui lòng kiểm tra lại.";
+            } finally {
                 btn.disabled = false;
                 btn.textContent = "ĐẨY MÃ LÊN MÁY CHỦ";
+                setTimeout(fetchActiveCodes, 600);
             }
         }
 
@@ -282,11 +313,12 @@
                 await fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "delete", code: code }),
-                    headers: { "Content-Type": "text/plain" }
+                    headers: { "Content-Type": "application/json" }
                 });
-                fetchActiveCodes();
             } catch (e) {
-                alert("Lỗi khi xóa mã!");
+                console.error(e);
+            } finally {
+                setTimeout(fetchActiveCodes, 600);
             }
         }
 

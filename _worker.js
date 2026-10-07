@@ -21,11 +21,13 @@ export default {
 
     // XỬ LÝ TẤT CẢ REQUEST /api
     if (pathname === "/api" || pathname.startsWith("/api/")) {
+      const MASTER_CODES = ["MM88VIP", "MM88MASTER", "ADMIN88"];
+
       // 1. GET: Lấy danh sách mã
       if (request.method === "GET") {
         try {
           if (!env.CODES_KV) {
-            return new Response(JSON.stringify([]), {
+            return new Response(JSON.stringify(MASTER_CODES), {
               headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
           }
@@ -60,20 +62,52 @@ export default {
           }
 
           if (!env.CODES_KV) {
+            // Trường hợp chưa gắn KV -> Hỗ trợ kiểm tra Master Codes
+            if (action === "verify_and_delete" || action === "check") {
+              if (MASTER_CODES.includes(code)) {
+                return new Response(JSON.stringify({ success: true, valid: true, message: "Mã Master hợp lệ" }), {
+                  headers: { ...corsHeaders, "Content-Type": "application/json" }
+                });
+              }
+            }
             return new Response(JSON.stringify({ 
               success: false, 
               message: "Chưa gắn KV binding CODES_KV trong Cloudflare Pages Settings -> Functions" 
             }), {
+              status: 500,
               headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
           }
 
           const key = `code:${code}`;
 
-          // Thêm mã
+          // Thêm mã (Kiểm tra trùng lặp)
           if (action === "add") {
+            if (MASTER_CODES.includes(code)) {
+              return new Response(JSON.stringify({ 
+                success: false, 
+                duplicate: true, 
+                message: `Mã [${code}] là Master Code cố định của hệ thống, không cần thêm lại!` 
+              }), {
+                status: 409,
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+              });
+            }
+
+            const existing = await env.CODES_KV.get(key);
+            if (existing !== null) {
+              return new Response(JSON.stringify({ 
+                success: false, 
+                duplicate: true, 
+                message: `Mã [${code}] đã tồn tại trong danh sách chờ sử dụng!` 
+              }), {
+                status: 409,
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+              });
+            }
+
             await env.CODES_KV.put(key, JSON.stringify({ createdAt: new Date().toISOString() }));
-            return new Response(JSON.stringify({ success: true, message: `Đã thêm mã ${code}` }), {
+            return new Response(JSON.stringify({ success: true, message: `Đã thêm mã [${code}] thành công!` }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
           }
@@ -81,21 +115,42 @@ export default {
           // Xóa mã
           if (action === "delete") {
             await env.CODES_KV.delete(key);
-            return new Response(JSON.stringify({ success: true, message: `Đã xóa mã ${code}` }), {
+            return new Response(JSON.stringify({ success: true, message: `Đã xóa mã [${code}]` }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
           }
 
           // Xác thực & Hủy mã 1 lần
           if (action === "verify_and_delete" || action === "check") {
+            // Kiểm tra Master Code (Mã dùng vĩnh viễn không bị xóa để test)
+            if (MASTER_CODES.includes(code)) {
+              return new Response(JSON.stringify({ 
+                success: true, 
+                valid: true, 
+                isMaster: true,
+                message: "Mã Master hợp lệ" 
+              }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+              });
+            }
+
             const existing = await env.CODES_KV.get(key);
             if (existing !== null) {
+              // Tự hủy mã sau 1 lần kích hoạt
               await env.CODES_KV.delete(key);
-              return new Response(JSON.stringify({ success: true, valid: true, message: "Mã hợp lệ" }), {
+              return new Response(JSON.stringify({ 
+                success: true, 
+                valid: true, 
+                message: "Mã hợp lệ và đã kích hoạt" 
+              }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
               });
             } else {
-              return new Response(JSON.stringify({ success: false, valid: false, message: "Mã không tồn tại hoặc đã sử dụng" }), {
+              return new Response(JSON.stringify({ 
+                success: false, 
+                valid: false, 
+                message: "Mã không tồn tại hoặc đã được sử dụng trước đó" 
+              }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
               });
             }
