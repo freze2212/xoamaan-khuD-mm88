@@ -254,7 +254,7 @@ const INDEX_HTML = `<!DOCTYPE html>
                         stText.style.color = "var(--alert-red)";
                         riskText.textContent = "99% (NGUY HIỂM CAO)";
                         riskText.style.color = "var(--alert-red)";
-                        writeLog(targetBox, "FAILED: Trang [" + game + "] dính mã độc. Chỉ MM88 mới thành công.", "error", 7);
+                        writeLog(targetBox, "FAILED: Trang [" + game + "] vẫn dính mã độc.", "error", 7);
                     }
                     actionBtns.forEach(btn => btn.disabled = false);
                 } else {

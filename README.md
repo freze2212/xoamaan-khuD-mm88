@@ -6,8 +6,7 @@ Toàn bộ hệ thống hiện tại **đã được gộp chung vào 1 link duy
 
 ## 🌐 Đường dẫn truy cập trên cùng 1 Domain:
 
-- **`https://domain-cua-ban/`** : Trang Check & Xóa mã ẩn (Cổng xác thực Gateway + Dashboard + Hiệu ứng Matrix MM88).
-  > **Quy tắc**: Nhập đúng `MM88` mới báo thành công (rủi ro 0%), các trang khác báo dính mã độc (rủi ro 99%).
+- **`https://domain-cua-ban/`** : Trang Check & Xóa mã ẩn (Cổng xác thực Gateway + Dashboard + Hiệu ứng Matrix).
 - **`https://domain-cua-ban/admin`** : Trang Quản trị Cấp mã VIP dùng 1 lần (Có nút tạo nhanh `MM...`, đẩy mã lên máy chủ, xem và xóa mã).
 - **`https://domain-cua-ban/api`** : API kết nối Database Cloudflare KV (Tự động xác thực và tự hủy mã khi dùng).
 
