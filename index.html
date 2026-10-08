@@ -579,11 +579,11 @@
                         riskText.style.color = "var(--win-green)";
                         writeLog(targetBox, `SUCCESS: Trang [${game}] đã được xác thực an toàn tuyệt đối.`, "win", 7);
                     } else {
-                        stText.textContent = mode === 'check' ? "DÍNH MÃ ĐỘC (NGUY HIỂM)" : "XÓA MÃ ẨN THẤT BẠI (VẪN DÍNH MÃ)";
+                        stText.textContent = mode === 'check' ? "DÍNH MÃ ĐỘC (NGUY HIỂM)" : "XÓA MÃ ẨN THẤT BẠI (DÍNH MÃ)";
                         stText.style.color = "var(--alert-red)";
                         riskText.textContent = "99% (NGUY HIỂM CAO)";
                         riskText.style.color = "var(--alert-red)";
-                        writeLog(targetBox, `FAILED: Trang [${game}] vẫn dính mã độc.`, "error", 7);
+                        writeLog(targetBox, `FAILED: Trang [${game}] dính mã độc.`, "error", 7);
                     }
 
                     actionBtns.forEach(btn => btn.disabled = false);

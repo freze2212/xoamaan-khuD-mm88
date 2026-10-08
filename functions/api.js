@@ -3,6 +3,42 @@
  * Route: /api
  */
 
+const ACTIVE_CODES_KEY = "codes:active";
+
+async function readActiveCodes(kv) {
+  const raw = await kv.get(ACTIVE_CODES_KEY);
+  if (raw !== null) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return [...new Set(parsed.map((c) => String(c).trim().toUpperCase()).filter(Boolean))];
+      }
+    } catch {}
+    return [];
+  }
+
+  const migrated = [];
+  let cursor;
+  do {
+    const list = await kv.list({ prefix: "code:", cursor });
+    for (const item of list.keys) {
+      const code = item.name.replace(/^code:/, "").trim().toUpperCase();
+      if (code) migrated.push(code);
+    }
+    cursor = list.list_complete ? undefined : list.cursor;
+  } while (cursor);
+
+  const unique = [...new Set(migrated)];
+  await kv.put(ACTIVE_CODES_KEY, JSON.stringify(unique));
+  return unique;
+}
+
+async function writeActiveCodes(kv, codes) {
+  const unique = [...new Set(codes.map((c) => String(c).trim().toUpperCase()).filter(Boolean))];
+  await kv.put(ACTIVE_CODES_KEY, JSON.stringify(unique));
+  return unique;
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -10,6 +46,7 @@ export async function onRequest(context) {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Cache-Control": "no-store",
   };
 
   if (request.method === "OPTIONS") {
@@ -27,8 +64,7 @@ export async function onRequest(context) {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
-      const list = await env.CODES_KV.list({ prefix: "code:" });
-      const codes = list.keys.map(k => k.name.replace(/^code:/, ""));
+      const codes = await readActiveCodes(env.CODES_KV);
       return new Response(JSON.stringify(codes), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
@@ -89,8 +125,8 @@ export async function onRequest(context) {
           });
         }
 
-        const existing = await env.CODES_KV.get(key);
-        if (existing !== null) {
+        const codes = await readActiveCodes(env.CODES_KV);
+        if (codes.includes(code)) {
           return new Response(JSON.stringify({ 
             success: false, 
             duplicate: true, 
@@ -101,7 +137,8 @@ export async function onRequest(context) {
           });
         }
 
-        await env.CODES_KV.put(key, JSON.stringify({ createdAt: new Date().toISOString() }));
+        await writeActiveCodes(env.CODES_KV, [...codes, code]);
+        await env.CODES_KV.put(key, JSON.stringify({ createdAt: new Date().toISOString(), once: true }));
         return new Response(JSON.stringify({ success: true, message: `Đã thêm mã [${code}] thành công!` }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
@@ -109,6 +146,8 @@ export async function onRequest(context) {
 
       // Xóa mã
       if (action === "delete") {
+        const codes = await readActiveCodes(env.CODES_KV);
+        await writeActiveCodes(env.CODES_KV, codes.filter((c) => c !== code));
         await env.CODES_KV.delete(key);
         return new Response(JSON.stringify({ success: true, message: `Đã xóa mã [${code}]` }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -128,8 +167,10 @@ export async function onRequest(context) {
           });
         }
 
-        const existing = await env.CODES_KV.get(key);
-        if (existing !== null) {
+        const codes = await readActiveCodes(env.CODES_KV);
+        const legacy = await env.CODES_KV.get(key);
+        if (codes.includes(code) || legacy !== null) {
+          await writeActiveCodes(env.CODES_KV, codes.filter((c) => c !== code));
           await env.CODES_KV.delete(key);
           return new Response(JSON.stringify({ 
             success: true, 

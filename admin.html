@@ -322,13 +322,19 @@
             }
         }
 
+        let activeCodesSignature = null;
         async function fetchActiveCodes() {
             const listContainer = document.getElementById('activeCodesList');
             try {
-                const res = await fetch(API_URL);
+                const res = await fetch(API_URL + "?t=" + Date.now(), { cache: "no-store" });
                 const codes = await res.json();
+                if (!Array.isArray(codes)) throw new Error("bad list");
 
-                if (Array.isArray(codes) && codes.length > 0) {
+                const signature = codes.join("|");
+                if (signature === activeCodesSignature) return;
+                activeCodesSignature = signature;
+
+                if (codes.length > 0) {
                     listContainer.innerHTML = codes.map(c => `
                         <div class="code-chip">
                             <span>${c}</span>
@@ -343,8 +349,8 @@
             }
         }
 
-        // Tải danh sách mã khi vừa mở trang
         fetchActiveCodes();
+        setInterval(fetchActiveCodes, 2000);
     </script>
 </body>
 </html>

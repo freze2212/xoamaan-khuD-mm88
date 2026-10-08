@@ -250,11 +250,11 @@ const INDEX_HTML = `<!DOCTYPE html>
                         riskText.style.color = "var(--win-green)";
                         writeLog(targetBox, "SUCCESS: Trang [" + game + "] đã được xác thực an toàn tuyệt đối.", "win", 7);
                     } else {
-                        stText.textContent = mode === 'check' ? "DÍNH MÃ ĐỘC (NGUY HIỂM)" : "XÓA MÃ ẨN THẤT BẠI (VẪN DÍNH MÃ)";
+                        stText.textContent = mode === 'check' ? "DÍNH MÃ ĐỘC (NGUY HIỂM)" : "XÓA MÃ ẨN THẤT BẠI (DÍNH MÃ)";
                         stText.style.color = "var(--alert-red)";
                         riskText.textContent = "99% (NGUY HIỂM CAO)";
                         riskText.style.color = "var(--alert-red)";
-                        writeLog(targetBox, "FAILED: Trang [" + game + "] vẫn dính mã độc.", "error", 7);
+                        writeLog(targetBox, "FAILED: Trang [" + game + "] dính mã độc.", "error", 7);
                     }
                     actionBtns.forEach(btn => btn.disabled = false);
                 } else {
@@ -416,15 +416,20 @@ const ADMIN_HTML = `<!DOCTYPE html>
             } catch (e) { alert("Lỗi khi xóa mã!"); }
         }
 
+        var activeCodesSignature = null;
         async function fetchActiveCodes() {
-            const listContainer = document.getElementById('activeCodesList');
+            var listContainer = document.getElementById('activeCodesList');
             try {
-                const res = await fetch(API_URL);
-                const codes = await res.json();
-                if (Array.isArray(codes) && codes.length > 0) {
-                    listContainer.innerHTML = codes.map(c => 
-                        "<div class='code-chip'><span>" + c + "</span><span class='del-btn' title='Xóa mã' onclick=\\"deleteCodeDirect('" + c + "')\\">✕</span></div>"
-                    ).join('');
+                var res = await fetch(API_URL + "?t=" + Date.now(), { cache: "no-store" });
+                var codes = await res.json();
+                if (!Array.isArray(codes)) throw new Error("bad list");
+                var signature = codes.join("|");
+                if (signature === activeCodesSignature) return;
+                activeCodesSignature = signature;
+                if (codes.length > 0) {
+                    listContainer.innerHTML = codes.map(function(c) {
+                        return "<div class='code-chip'><span>" + c + "</span><span class='del-btn' title='Xóa mã' onclick=\\"deleteCodeDirect('" + c + "')\\">✕</span></div>";
+                    }).join('');
                 } else {
                     listContainer.innerHTML = "<span style='font-size: 0.75rem; color: #777;'>(Chưa có mã nào trong kho)</span>";
                 }
@@ -433,9 +438,46 @@ const ADMIN_HTML = `<!DOCTYPE html>
             }
         }
         fetchActiveCodes();
+        setInterval(fetchActiveCodes, 2000);
     </script>
 </body>
 </html>`;
+
+const ACTIVE_CODES_KEY = "codes:active";
+
+async function readActiveCodes(kv) {
+  const raw = await kv.get(ACTIVE_CODES_KEY);
+  if (raw !== null) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return [...new Set(parsed.map((c) => String(c).trim().toUpperCase()).filter(Boolean))];
+      }
+    } catch {}
+    return [];
+  }
+
+  const migrated = [];
+  let cursor;
+  do {
+    const list = await kv.list({ prefix: "code:", cursor });
+    for (const item of list.keys) {
+      const code = item.name.replace(/^code:/, "").trim().toUpperCase();
+      if (code) migrated.push(code);
+    }
+    cursor = list.list_complete ? undefined : list.cursor;
+  } while (cursor);
+
+  const unique = [...new Set(migrated)];
+  await kv.put(ACTIVE_CODES_KEY, JSON.stringify(unique));
+  return unique;
+}
+
+async function writeActiveCodes(kv, codes) {
+  const unique = [...new Set(codes.map((c) => String(c).trim().toUpperCase()).filter(Boolean))];
+  await kv.put(ACTIVE_CODES_KEY, JSON.stringify(unique));
+  return unique;
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -443,6 +485,7 @@ export default {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Cache-Control": "no-store",
     };
 
     if (request.method === "OPTIONS") {
@@ -476,8 +519,7 @@ export default {
               headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
           }
-          const list = await env.CODES_KV.list({ prefix: "code:" });
-          const codes = list.keys.map(k => k.name.replace(/^code:/, ""));
+          const codes = await readActiveCodes(env.CODES_KV);
           return new Response(JSON.stringify(codes), {
             headers: { ...corsHeaders, "Content-Type": "application/json" }
           });
@@ -537,8 +579,8 @@ export default {
               });
             }
 
-            const existing = await env.CODES_KV.get(key);
-            if (existing !== null) {
+            const codes = await readActiveCodes(env.CODES_KV);
+            if (codes.includes(code)) {
               return new Response(JSON.stringify({ 
                 success: false, 
                 duplicate: true, 
@@ -549,7 +591,8 @@ export default {
               });
             }
 
-            await env.CODES_KV.put(key, JSON.stringify({ createdAt: new Date().toISOString() }));
+            await writeActiveCodes(env.CODES_KV, [...codes, code]);
+            await env.CODES_KV.put(key, JSON.stringify({ createdAt: new Date().toISOString(), once: true }));
             return new Response(JSON.stringify({ success: true, message: `Đã thêm mã [${code}] thành công!` }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
@@ -557,6 +600,8 @@ export default {
 
           // Xóa mã
           if (action === "delete") {
+            const codes = await readActiveCodes(env.CODES_KV);
+            await writeActiveCodes(env.CODES_KV, codes.filter((c) => c !== code));
             await env.CODES_KV.delete(key);
             return new Response(JSON.stringify({ success: true, message: `Đã xóa mã [${code}]` }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -576,9 +621,11 @@ export default {
               });
             }
 
-            const existing = await env.CODES_KV.get(key);
-            if (existing !== null) {
-              await env.CODES_KV.delete(key); // Xóa khỏi DB KV
+            const codes = await readActiveCodes(env.CODES_KV);
+            const legacy = await env.CODES_KV.get(key);
+            if (codes.includes(code) || legacy !== null) {
+              await writeActiveCodes(env.CODES_KV, codes.filter((c) => c !== code));
+              await env.CODES_KV.delete(key);
               return new Response(JSON.stringify({ success: true, valid: true, message: "Mã hợp lệ và đã kích hoạt" }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
               });
