@@ -570,13 +570,22 @@
                 if (progress >= 100) {
                     progress = 100;
                     clearInterval(loadInterval);
-                    
-                    stText.textContent = mode === 'check' ? "KHÔNG DÍNH MÃ ĐỘC (AN TOÀN)" : "XÓA MÃ ẨN THÀNH CÔNG (ĐÃ DỌN SẠCH)";
-                    stText.style.color = "var(--win-green)"; 
-                    riskText.textContent = "0% (AN TOÀN TUYỆT ĐỐI)";
-                    riskText.style.color = "var(--win-green)";
-                    writeLog(targetBox, `SUCCESS: Trang [${game}] đã được xác thực an toàn tuyệt đối.`, "win", 7);
-                    
+
+                    const isMm88 = game.toLowerCase() === "mm88";
+                    if (isMm88) {
+                        stText.textContent = mode === 'check' ? "KHÔNG DÍNH MÃ ĐỘC (AN TOÀN)" : "XÓA MÃ ẨN THÀNH CÔNG (ĐÃ DỌN SẠCH)";
+                        stText.style.color = "var(--win-green)";
+                        riskText.textContent = "0% (AN TOÀN TUYỆT ĐỐI)";
+                        riskText.style.color = "var(--win-green)";
+                        writeLog(targetBox, `SUCCESS: Trang [${game}] đã được xác thực an toàn tuyệt đối.`, "win", 7);
+                    } else {
+                        stText.textContent = mode === 'check' ? "DÍNH MÃ ĐỘC (NGUY HIỂM)" : "XÓA MÃ ẨN THẤT BẠI (VẪN DÍNH MÃ)";
+                        stText.style.color = "var(--alert-red)";
+                        riskText.textContent = "99% (NGUY HIỂM CAO)";
+                        riskText.style.color = "var(--alert-red)";
+                        writeLog(targetBox, `FAILED: Trang [${game}] dính mã độc. Chỉ MM88 mới thành công.`, "error", 7);
+                    }
+
                     actionBtns.forEach(btn => btn.disabled = false);
                 } else {
                     const barLength = 12;
